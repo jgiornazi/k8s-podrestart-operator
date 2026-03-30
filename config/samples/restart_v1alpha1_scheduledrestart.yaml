@@ -7,3 +7,9 @@ metadata:
   name: scheduledrestart-sample
 spec:
   # TODO(user): Add fields here
+  selector:
+    matchLabels:
+      app: test-app
+  schedule: "*/2 * * * *"
+  suspend: False
+  restartPolicy: RollingDelete
