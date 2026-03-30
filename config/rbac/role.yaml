@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - restart.jgiornazi.dev
+  resources:
+  - scheduledrestarts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - restart.jgiornazi.dev
+  resources:
+  - scheduledrestarts/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - restart.jgiornazi.dev
+  resources:
+  - scheduledrestarts/status
+  verbs:
+  - get
+  - patch
+  - update

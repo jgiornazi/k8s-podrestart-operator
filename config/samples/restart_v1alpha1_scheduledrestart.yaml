@@ -1,0 +1,9 @@
+apiVersion: restart.jgiornazi.dev/v1alpha1
+kind: ScheduledRestart
+metadata:
+  labels:
+    app.kubernetes.io/name: k8s-podrestart-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: scheduledrestart-sample
+spec:
+  # TODO(user): Add fields here

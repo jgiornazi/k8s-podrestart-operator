@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- restart_v1alpha1_scheduledrestart.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
