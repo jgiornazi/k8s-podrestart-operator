@@ -29,10 +29,10 @@ type ScheduledRestartSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-	Selector metav1.LabelSelector `json:"matchLabels,omitempty"`
-	Schedule string `json:"schedule"`
-	Suspend bool `json:"suspend"`
-	RestartPolicy string `json:"restartPolicy"`
+	Selector      metav1.LabelSelector `json:"matchLabels,omitempty"`
+	Schedule      string               `json:"schedule"`
+	Suspend       bool                 `json:"suspend"`
+	RestartPolicy string               `json:"restartPolicy"`
 }
 
 // ScheduledRestartStatus defines the observed state of ScheduledRestart.
@@ -41,9 +41,9 @@ type ScheduledRestartStatus struct {
 	// For Kubernetes API conventions, see:
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 
-	LastRestartTime *metav1.Time `json:"lastRestartTime,omitempty"`
-	NextRestartTime *metav1.Time `json:"nextRestartTime,omitempty"`
-	ObservedGeneration int64 `json:"observedGeneration"`
+	LastRestartTime    *metav1.Time `json:"lastRestartTime,omitempty"`
+	NextRestartTime    *metav1.Time `json:"nextRestartTime,omitempty"`
+	ObservedGeneration int64        `json:"observedGeneration"`
 }
 
 // +kubebuilder:object:root=true

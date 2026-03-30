@@ -18,13 +18,17 @@ package controller
 
 import (
 	"context"
+	"time"
 
+	restartv1alpha1 "github.com/jgiornazi/k8s-podrestart-operator/api/v1alpha1"
+	"github.com/robfig/cron/v3"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	restartv1alpha1 "github.com/jgiornazi/k8s-podrestart-operator/api/v1alpha1"
 )
 
 // ScheduledRestartReconciler reconciles a ScheduledRestart object
@@ -50,8 +54,54 @@ func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	_ = logf.FromContext(ctx)
 
 	// TODO(user): your logic here
+	sr := &restartv1alpha1.ScheduledRestart{}
+	err := r.Get(ctx, req.NamespacedName, sr)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	if sr.Spec.Suspend {
+		return ctrl.Result{}, nil
+	}
+	schedule, err := cron.ParseStandard(sr.Spec.Schedule)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	lastRestart := time.Time{} // zero time = beginning of time
+	if sr.Status.LastRestartTime != nil {
+		lastRestart = sr.Status.LastRestartTime.Time
+	}
+	nextRun := schedule.Next(lastRestart)
+	if time.Now().Before(nextRun) {
+		return ctrl.Result{RequeueAfter: time.Until(nextRun)}, nil
+	}
+	podList := &corev1.PodList{}
+	err = r.List(ctx, podList, client.InNamespace(sr.Namespace), client.MatchingLabels(sr.Spec.Selector.MatchLabels))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-	return ctrl.Result{}, nil
+	for _, pod := range podList.Items {
+		if err := r.Delete(ctx, &pod); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	now := metav1.Now()
+	sr.Status.LastRestartTime = &now
+
+	nextRunTime := metav1.NewTime(schedule.Next(time.Now()))
+	sr.Status.NextRestartTime = &nextRunTime
+
+	err = r.Status().Update(ctx, sr)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{RequeueAfter: time.Until(nextRunTime.Time)}, nil
+
 }
 
 // SetupWithManager sets up the controller with the Manager.
