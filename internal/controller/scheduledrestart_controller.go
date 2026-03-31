@@ -40,6 +40,28 @@ type ScheduledRestartReconciler struct {
 
 const scheduledRestartFinalizer = "restart.jgiornazi.dev/finalizer"
 
+func (r *ScheduledRestartReconciler) rollingDelete(ctx context.Context, pods []corev1.Pod) error {
+	log := logf.FromContext(ctx)
+	for _, pod := range pods {
+		if err := r.Delete(ctx, &pod); err != nil {
+			return err
+		}
+		log.Info("deleted pod", "pod", pod.Name) // inside the delete functions
+		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
+func (r *ScheduledRestartReconciler) allAtOnce(ctx context.Context, pods []corev1.Pod) error {
+	log := logf.FromContext(ctx)
+	for _, pod := range pods {
+		if err := r.Delete(ctx, &pod); err != nil {
+			return err
+		}
+		log.Info("deleted pod", "pod", pod.Name) // inside the delete functions
+	}
+	return nil
+}
+
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/finalizers,verbs=update
@@ -47,7 +69,7 @@ const scheduledRestartFinalizer = "restart.jgiornazi.dev/finalizer"
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.3/pkg/reconcile
 func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
 
 	// TODO(user): your logic here
 	sr := &restartv1alpha1.ScheduledRestart{}
@@ -72,7 +94,9 @@ func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		return ctrl.Result{}, nil
 	}
+	log.Info("fetched ScheduledRestart", "name", sr.Name)
 	if sr.Spec.Suspend {
+		log.Info("suspend is true, skipping", "name", sr.Name)
 		return ctrl.Result{}, nil
 	}
 	schedule, err := cron.ParseStandard(sr.Spec.Schedule)
@@ -85,6 +109,7 @@ func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	nextRun := schedule.Next(lastRestart)
 	if time.Now().Before(nextRun) {
+		log.Info("not time yet", "nextRun", nextRun)
 		return ctrl.Result{RequeueAfter: time.Until(nextRun)}, nil
 	}
 	podList := &corev1.PodList{}
@@ -92,11 +117,14 @@ func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	for _, pod := range podList.Items {
-		if err := r.Delete(ctx, &pod); err != nil {
-			return ctrl.Result{}, err
-		}
+	log.Info("restarting pods", "count", len(podList.Items), "strategy", sr.Spec.RestartPolicy)
+	if sr.Spec.RestartPolicy == "RollingDelete" {
+		err = r.rollingDelete(ctx, podList.Items)
+	} else {
+		err = r.allAtOnce(ctx, podList.Items)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 	now := metav1.Now()
 	sr.Status.LastRestartTime = &now
@@ -105,6 +133,7 @@ func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	sr.Status.NextRestartTime = &nextRunTime
 
 	err = r.Status().Update(ctx, sr)
+	log.Info("status updated", "lastRestartTime", now)
 
 	if err != nil {
 		return ctrl.Result{}, err

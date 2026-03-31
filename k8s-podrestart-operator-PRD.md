@@ -155,10 +155,23 @@ Reconcile(ctx, req) called
 
 ### Phase 4 — Tests & Polish (Day 3)
 
-- [ ] Write table-driven unit tests for the cron schedule logic
+- [x] Write table-driven unit tests for the cron schedule logic
 - [ ] Write an integration test using envtest (kubebuilder scaffolds this)
-- [ ] Add a `config/samples/` directory with example CRD manifests
-- [ ] Write a clear README: what it does, how to install, how to create a ScheduledRestart, how to verify it worked
+- [x] Add a `config/samples/` directory with example CRD manifests
+- [x] Write a clear README: what it does, how to install, how to create a ScheduledRestart, how to verify it worked
+
+### Phase 5 — RollingDelete & Logging (Day 4)
+
+- [ ] Extract pod deletion into a dedicated `restartPods()` function
+- [ ] Implement true `RollingDelete`: delete one pod at a time with a configurable sleep between each (default 5s)
+- [ ] Add strategy branching: route to `RollingDelete` or `AllAtOnce` based on `spec.restartPolicy`
+- [ ] Add structured logging at key reconciler decision points:
+  - Resource fetched
+  - Suspend detected
+  - Not time yet (log next run time)
+  - Restarting pods (log count and strategy)
+  - Each pod deleted
+  - Status updated
 
 ---
 
