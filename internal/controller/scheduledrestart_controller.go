@@ -46,18 +46,19 @@ func (r *ScheduledRestartReconciler) rollingDelete(ctx context.Context, pods []c
 		if err := r.Delete(ctx, &pod); err != nil {
 			return err
 		}
-		log.Info("deleted pod", "pod", pod.Name) // inside the delete functions
+		log.Info("deleted pod", "pod", pod.Name)
 		time.Sleep(5 * time.Second)
 	}
 	return nil
 }
+
 func (r *ScheduledRestartReconciler) allAtOnce(ctx context.Context, pods []corev1.Pod) error {
 	log := logf.FromContext(ctx)
 	for _, pod := range pods {
 		if err := r.Delete(ctx, &pod); err != nil {
 			return err
 		}
-		log.Info("deleted pod", "pod", pod.Name) // inside the delete functions
+		log.Info("deleted pod", "pod", pod.Name)
 	}
 	return nil
 }
@@ -67,12 +68,9 @@ func (r *ScheduledRestartReconciler) allAtOnce(ctx context.Context, pods []corev
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/finalizers,verbs=update
 
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.3/pkg/reconcile
 func (r *ScheduledRestartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
 	sr := &restartv1alpha1.ScheduledRestart{}
 	err := r.Get(ctx, req.NamespacedName, sr)
 	if err != nil {
