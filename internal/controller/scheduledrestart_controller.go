@@ -62,6 +62,7 @@ func (r *ScheduledRestartReconciler) allAtOnce(ctx context.Context, pods []corev
 	return nil
 }
 
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;delete
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=restart.jgiornazi.dev,resources=scheduledrestarts/finalizers,verbs=update
